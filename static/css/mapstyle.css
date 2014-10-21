@@ -1,0 +1,40 @@
+#map-canvas {
+    position: fixed!important;
+    width: 97%;
+    height: 85%;
+    background-color: #CCC;
+      }
+      .barlabel,.barinput,.barbutton {
+        width:20%;
+        display:inline;
+      }
+      #latLangBar{
+        margin:0px auto;
+        width: 50%;
+      }
+      .taskactive {
+        right:0;
+      }
+      .taskright {
+        float:right!important;
+      }
+      .taskdisappear {
+        right:-400px;
+      }
+      .taskText {
+        width:150px!important;
+        display:inline!important;
+        margin-bottom: 5px;
+      }
+      .halfTaskText {
+        width:90px!important;
+        display: inline!important;
+        margin-bottom: 5px;
+      }
+      .scrollableList {
+        overflow: scroll;
+        max-height: 500px;
+      }
+     .input-group-addon{
+        text-align: left!important;
+      }

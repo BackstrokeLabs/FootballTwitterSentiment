@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Football Twitter Sentiment </title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/static/css/bootstrap.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="/static/css/dashboard1.css" rel="stylesheet">
+    <link href="/static/css/mapstyle.css" rel="stylesheet">
+    <link href="/static/css/toastr.css" rel="stylesheet">
+    <link href="/static/css/bootstrap-switch.css" rel="stylesheet">
+    <link href="/static/css/homePage.css" rel="stylesheet">
+
+    <script src="/static/js/jquery.min.js"></script>
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.16/socket.io.min.js"></script>
+    <script src="/static/js/canvasjs.min.js"></script>
+    <script src="/static/js/bootstrap-switch.js"></script>
+    <script src="/static/js/toastr.js"></script>
+    <script src="/static/js/socketFoot.js"></script>
+    <script src="/static/js/taskControl.js"></script>
+    
+        <script type="text/javascript">
+      $(document).ready(function(){
+            console.log("asdsd");
+            namespace = '/test'; // change to an empty string to use the global namespace
+            var socket = io.connect('http://' + document.domain + ':' + location.port + namespace);
+            var glob = {}
+            socket.on('connect', function() {
+                socket.emit('my event', {data: 'I\'m connected!'});
+            });
+
+            socket.on('my response', function(msg) {
+              updateChart(msg.data);
+              updateTeam(msg);
+              if(!isEmpty(msg.goal))
+              {
+                updateGoal(msg);
+              }
+              updateVerified(msg);
+              updatePlayer(msg);
+            });
+
+             var dps = []; // dataPoints
+
+            var xVal = 0;
+            var yVal = 100; 
+            var updateInterval = 200;
+            var dataLength = 500; // number of dataPoints visible at any point
+
+
+            var chart = new CanvasJS.Chart("chartContainer",{
+              title :{
+                text: "Tweets Timeline"
+              },      
+              data: [{
+                type: "line",
+                dataPoints: dps 
+              }]
+            });
+
+            function isEmpty(ob){ for(var i in ob){ return false;} return true; } isEmpty({a:1}) // false isEmpty({})
+            function updateChart(msg) {
+                yVal = msg['count']
+                  dps.push({
+                    x: xVal,
+                    y: yVal
+                  });
+                  xVal++;
+
+                if (dps.length > 500)
+                {
+                  dps.shift();        
+                }
+                
+                chart.render();   
+
+              }
+
+              function updatePlayer(msg) {
+                  pPTeam = parseInt(msg.player_dict['playerbenzema_dict']['positive_count']);
+                  pNTeam = parseInt(msg.player_dict['playerbenzema_dict']['negative_count']);
+                  console.log(pPTeam + "       " + pNTeam)
+
+                  fPTeam = parseInt(msg.player_dict['playerronaldo_dict']['positive_count']);
+                  fNTeam = parseInt(msg.player_dict['playerronaldo_dict']['negative_count']);
+
+                  if(pPTeam >= pNTeam)
+                  {
+                    diff=pPTeam-pNTeam;
+                    pPTeam=50+diff;
+                    pNTeam=100-pPTeam;
+                    //console.log(pPTeam + "       " + pNTeam)
+                  }
+                  else
+                  {
+                    diff=pNTeam-pPTeam;
+                    pNTeam=50+diff;
+                    pPTeam=100-pNTeam;
+                    //console.log(pPTeam + "       " + pNTeam)
+                  }
+
+                  if(fPTeam >= fNTeam)
+                  {
+                    diff=fPTeam-fNTeam;
+                    fPTeam=50+diff;
+                    fNTeam=100-fPTeam;
+                    //console.log(pPTeam + "       " + pNTeam)
+                  }
+                  else
+                  {
+                    diff=fNTeam-fPTeam;
+                    fNTeam=50+diff;
+                    fPTeam=100-fNTeam;
+                    //console.log(pPTeam + "       " + pNTeam)
+                  }
+
+                  $('#chelseaPositive').width(pPTeam + "%");
+                  $('#chelseaPositiveNum').text(pPTeam + "%");
+
+                  $('#chelseaNegative').width(pNTeam + "%") ; 
+                  $('#chelseaNegativeNum').text(pNTeam +"%");
+
+                  $('#arsenalPositive').width(fPTeam+"%");
+                  $('#arsenalPositiveNum').text(fPTeam+"%");
+
+                  $('#arsenalNegative').width(fNTeam+"%") ; 
+                  $('#arsenalNegativeNum').text(fNTeam+"%");
+/*
+                  $('#arsenalPositive').width(msg.team['teamfrance_dict']['positive_count']+"%");
+                  $('#arsenalPositiveNum').text(msg.team['teamfrance_dict']['positive_count']+"%");
+                  $('#arsenalNegative').width(msg.team['teamfrance_dict']['negative_count']+"40%") ; 
+                  $('#arsenalPositiveNum').text(msg.team['teamfrance_dict']['negative_count']+"60%");*/
+              }
+              function updateGoal(msg) {
+                  if(msg.goal['team']=="Portugal" && msg.goal['is_yellow']==0)
+                  {
+                    tmp=$('#Portugal').text()
+                    tmp=parseInt(tmp)+1;
+                    $('#Portugal').text(tmp);
+                    if(msg.goal['player']=="Quaresma")
+                    {
+                      $('#Quarezma').prepend('<img src="/static/img/football.png" height="20px" width="20px">')
+                    }
+                  }
+                  else if(msg.goal['team']=="France" && msg.goal['is_yellow']==0)
+                  {
+                    tmp=$('#France').text()
+                    tmp=parseInt(tmp)+1;
+                    $('#France').text(tmp) 
+                    if(msg.goal['player']=="Karim Benzema")
+                    {
+                      $('#Benzema').prepend('<img src="/static/img/football.png" height="20px" width="20px">')
+                    }
+                    if(msg.goal['player']=="Paul Pogba")
+                    {
+                      $('#Pogba').prepend('<img src="/static/img/football.png" height="20px" width="20px">')
+                    }
+                  }
+                  if(msg.goal['is_yellow']==1 && msg.goal['player']==' Eliaquim Mangala \n')
+                  {
+                    $('#Mangala').prepend('<img src="/static/img/yellowCard.png" height="20px" width="20px">') 
+                  }
+              }
+
+              function updateVerified(msg) {
+                    $("#veri").empty()
+                    for(i = 0; i < msg.verified.length; i++)
+                    {
+                      $("#veri").append('<p class="bg-primary">'+msg.verified[i]+'</p>');  
+                    }
+              }
+
+              function updateTeam(msg) {
+                  pPTeam = parseInt(msg.team['teamportugal_dict']['positive_count']);
+                  pNTeam = parseInt(msg.team['teamportugal_dict']['negative_count']);
+                  console.log(pPTeam + "       " + pNTeam)
+                  fPTeam = parseInt(msg.team['teamfrance_dict']['positive_count']);
+                  fNTeam = parseInt(msg.team['teamfrance_dict']['negative_count']);
+
+                  if(pPTeam >= pNTeam)
+                  {
+                    diff=pPTeam-pNTeam;
+                    pPTeam=50+diff;
+                    pNTeam=100-pPTeam;
+                    //console.log(pPTeam + "       " + pNTeam)
+                  }
+                  else
+                  {
+                    diff=pNTeam-pPTeam;
+                    pNTeam=50+diff;
+                    pPTeam=100-pNTeam;
+                    //console.log(pPTeam + "       " + pNTeam)
+                  }
+
+                  if(fPTeam >= fNTeam)
+                  {
+                    diff=fPTeam-fNTeam;
+                    fPTeam=50+diff;
+                    fNTeam=100-fPTeam;
+                    //console.log(pPTeam + "       " + pNTeam)
+                  }
+                  else
+                  {
+                    diff=fNTeam-fPTeam;
+                    fNTeam=50+diff;
+                    fPTeam=100-fNTeam;
+                    //console.log(pPTeam + "       " + pNTeam)
+                  }
+
+                  $('#player4Pos').width(pPTeam + "%");
+                  $('#player4PosVal').text(pPTeam + "%");
+
+                  $('#player4Neg').width(pNTeam + "%") ; 
+                  $('#player4NegVal').text(pNTeam +"%");
+
+                  $('#player1Pos').width(fPTeam+"%");
+                  $('#player1PosVal').text(fPTeam+"%");
+
+                  $('#player1Neg').width(fNTeam+"%") ; 
+                  $('#player1NegVal').text(fNTeam+"%");
+/*
+                  $('#arsenalPositive').width(msg.team['teamfrance_dict']['positive_count']+"%");
+                  $('#arsenalPositiveNum').text(msg.team['teamfrance_dict']['positive_count']+"%");
+                  $('#arsenalNegative').width(msg.team['teamfrance_dict']['negative_count']+"40%") ; 
+                  $('#arsenalPositiveNum').text(msg.team['teamfrance_dict']['negative_count']+"60%");*/
+              }
+        });
+    </script>
+
+  </head>
+
+  <body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+  <div class="container-fluid">
+    <div class="navbar-header"> 
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="#">Football Twitter Sentiment</a>
+    </div>
+    <div class="collapse navbar-collapse">
+      <ul class="nav navbar-nav navbar-right">
+      <li><button class="btn btn-primary btn-large createPlan" data-target="#myModal" id="createPlanModal">
+        Create Plan
+      </button></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="#contact">Help</a></li>
+      </ul>
+      <span class="navbar-form navbar-right">
+          <input type="text" class="form-control" placeholder="Input" id = "lngValue">
+      </span>
+    </div><!--/.nav-collapse -->
+  </div>
+</div>
+  
+<!-- //////////////////////////////////////////////////Main Body start////////////////////////////////////////////// -->
+
+      <div class="container">
+        <div class="row">
+
+            <div class="col-md-5">
+              <p class='rightWeight'>
+                <img src="/static/img/chelsea.jpg"  height="100px" width="100px"> <br/>
+                  Portugal
+                  <div class="progress">
+                     <div class="progress-bar progress-bar-success" role="progressbar" 
+                        aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" 
+                        style="width: 80%;" id="chelseaPositive">
+                        <span id="chelseaPositiveNum">80%</span>
+                     </div>
+                     <div class="progress-bar progress-bar-danger" role="progressbar" 
+                        aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"  
+                        style="width: 20%;" id="chelseaNegative">
+                        <span id="chelseaNegativeNum">20%</span>
+                     </div>
+                  </div> 
+              </p>
+            </div>
+            <div class="col-md-2 marg">
+              <div class="col-md-4 score">
+                <span id="Portugal">0</span>
+              </div>
+              <div class="col-md-4">
+                <div  style="margin-top: 30px; font-size:20px; font-weight:bold;">VS </div>
+              </div>
+              <div class="col-md-4 score">
+                <span id="France">0</span>
+              </div>
+            </div>
+            <div class="col-md-5">
+              <p class='leftWeight'>
+                <img src="/static/img/arsenal.jpg"  height="100px" width="100px">
+                 <br/>
+                  France
+                  <div class="progress">
+                     <div class="progress-bar progress-bar-success" role="progressbar" 
+                        aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" 
+                        style="width: 60%;" id="arsenalPositive">
+                        <span id="arsenalPositiveNum">60%</span>
+                     </div>
+                     <div class="progress-bar progress-bar-danger" role="progressbar" 
+                        aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"  
+                        style="width: 40%;" id="arsenalNegative">
+                        <span id="arsenalNegativeNum">40%</span>
+                     </div>
+                  </div>
+              </p>
+            </div>
+            <div class="col-md-12 wrapper">
+                <div id="chartContainer" style="height: 300px; width:100%;">
+                </div>
+               <!-- <img src="/static/img/sampGraph.png"> -->
+            </div>
+            <div class="col-md-6 wrapper">
+                
+              <table class="table">
+                <tbody>
+                    <tr>
+                        <td><img src="/static/img/ronaldo.jpg" class="img-circle" height="100px" width="100px">
+                         <p> Ronaldo </p>
+                        </td>
+
+                        <td style="text-align:center; vertical-align:middle;">
+                          <div class="progress">
+                             <div class="progress-bar progress-bar-success" role="progressbar" 
+                                aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" 
+                                style="width: 90%;" id="player1Pos">
+                                <span id="player1PosVal">90%</span>
+                             </div>
+                             <div class="progress-bar progress-bar-danger" role="progressbar" 
+                                aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"  
+                                style="width: 10%;" id="player1Neg">
+                                <span id="player1NegVal">10%</span>
+                             </div>
+                          </div>
+                        </td>
+                        <td style="text-align:center; vertical-align:middle;">
+                          <div id = "Ronaldo">
+                            
+                          </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><img src="/static/img/quarezma.jpg" class="img-circle" height="100px" width="100px">
+                        <p> Quarezma </p>
+                        </td>
+
+                        <td style="text-align:center; vertical-align:middle;">
+                          <div class="progress">
+                             <div class="progress-bar progress-bar-success" role="progressbar" 
+                                aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" 
+                                style="width: 50%;" id="player2Pos">
+                                <span>50%</span>
+                             </div>
+                             <div class="progress-bar progress-bar-danger" role="progressbar" 
+                                aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"  
+                                style="width: 50%;" id="player2Neg">
+                                <span>50%</span>
+                             </div>
+                          </div>
+                        </td>
+                        <td style="text-align:center; vertical-align:middle;">
+                          <div id = "Quarezma">
+                            
+                          </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><img src="/static/img/vieirinha.jpg" class="img-circle" height="100px" width="100px">
+                          <p> Vieirinha </p>
+                        </td>
+
+                        <td style="text-align:center; vertical-align:middle;">
+                          <div class="progress">
+                             <div class="progress-bar progress-bar-success" role="progressbar" 
+                                aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" 
+                                style="width: 80%;" id="player6Pos">
+                                <span>80%</span>
+                             </div>
+                             <div class="progress-bar progress-bar-danger" role="progressbar" 
+                                aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"  
+                                style="width: 20%;" id="player6Neg">
+                                <span>20%</span>
+                             </div>
+                          </div>
+                        </td>
+                        <td style="text-align:center; vertical-align:middle;">
+                          <div id = "Vieirinha">
+                            
+                          </div>
+                        </td>
+                    </tr>
+                   <!--  <tr>
+                        <td><img src="/static/img/Yohan-Cabaye.jpg" class="img-circle" height="100px" width="100px">
+                          <p> Yohan-Cabaye </p>
+                        </td>
+
+                        <td style="text-align:center; vertical-align:middle;">
+                          <div class="progress">
+                             <div class="progress-bar progress-bar-success" role="progressbar" 
+                                aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" 
+                                style="width: 80%;" id="player3Pos">
+                                <span>80%</span>
+                             </div>
+                             <div class="progress-bar progress-bar-danger" role="progressbar" 
+                                aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"  
+                                style="width: 20%;" id="player3Neg">
+                                <span>20%</span>
+                             </div>
+                          </div>
+                        </td>
+                        <td style="text-align:center; vertical-align:middle;">
+                          <div id = "Yohan">
+                            </div>
+                        </td>
+                    </tr> -->
+                </tbody>
+              </table>
+              <!-- <div class="col-md-4">
+                <img src="/static/img/podolski1.jpg" class="img-circle" height="100px" width="100px"><br/><br/>
+                <img src="/static/img/ramsey2.jpg" class="img-circle" height="100px" width="100px"><br/><br/>
+                <img src="/static/img/ramsey2.jpg" class="img-circle" height="100px" width="100px"><br/><br/>
+                 <img src="/static/img/podolski.jpg"> <br/>
+                <img src="/static/img/ramsey.jpg"> <br/>
+                <img src="/static/img/sanchez.jpg"> <br/>
+              <p>Box 4</p>
+              </div>
+              <div class="col-md-8">
+              <p>Box 4</p>
+              </div> -->
+              
+            </div>
+            <div class="col-md-6 wrapper">
+              <table class="table">
+                <tbody>
+                    <tr>
+                        <td><img src="/static/img/benzema.jpg" class="img-circle" height="100px" width="100px">
+                         <p> Benzema </p>
+                        </td>
+
+                        <td style="text-align:center; vertical-align:middle;">
+                          <div class="progress">
+                             <div class="progress-bar progress-bar-success" role="progressbar" 
+                                aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" 
+                                style="width: 60%;" id="player4Pos">
+                                <span id="player4PosVal">60%</span>
+                             </div>
+                             <div class="progress-bar progress-bar-danger" role="progressbar" 
+                                aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"  
+                                style="width: 40%;" id="player4Neg">
+                                <span id="player4NegVal">40%</span>
+                             </div>
+                          </div>
+                        </td>
+                        <td style="text-align:center; vertical-align:middle;">
+                          <div id = "Benzema">
+                            
+                          </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><img src="/static/img/pogba.jpg" class="img-circle" height="100px" width="100px">
+                        <p> Pogba </p>
+                        </td>
+
+                        <td style="text-align:center; vertical-align:middle;">
+                          <div class="progress">
+                             <div class="progress-bar progress-bar-success" role="progressbar" 
+                                aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" 
+                                style="width: 83%;" id="player5Pos">
+                                <span>83%</span>
+                             </div>
+                             <div class="progress-bar progress-bar-danger" role="progressbar" 
+                                aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"  
+                                style="width: 17%;" id="player5Neg">
+                                <span>17%</span>
+                             </div>
+                          </div>
+                        </td>
+                        <td style="text-align:center; vertical-align:middle;">
+                          <div id = "Pogba">
+                            
+                          </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><img src="/static/img/Mangala.jpg" class="img-circle" height="100px" width="100px">
+                          <p> Mangala </p>
+                        </td>
+
+                        <td style="text-align:center; vertical-align:middle;">
+                          <div class="progress">
+                             <div class="progress-bar progress-bar-success" role="progressbar" 
+                                aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" 
+                                style="width: 80%;" id="player3Pos">
+                                <span>80%</span>
+                             </div>
+                             <div class="progress-bar progress-bar-danger" role="progressbar" 
+                                aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"  
+                                style="width: 20%;" id="player3Neg">
+                                <span>20%</span>
+                             </div>
+                          </div>
+                        </td>
+                        <td style="text-align:center; vertical-align:middle;">
+                          <div id = "Mangala">
+                            
+                          </div>
+                        </td>
+                    </tr>
+              <!--       <tr>
+                        <td><img src="/static/img/moutinho.jpg" class="img-circle" height="100px" width="100px">
+                          <p> Moutinho </p>
+                        </td>
+
+                        <td style="text-align:center; vertical-align:middle;">
+                          <div class="progress">
+                             <div class="progress-bar progress-bar-success" role="progressbar" 
+                                aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" 
+                                style="width: 80%;" id="player6Pos">
+                                <span>80%</span>
+                             </div>
+                             <div class="progress-bar progress-bar-danger" role="progressbar" 
+                                aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"  
+                                style="width: 20%;" id="player6Neg">
+                                <span>20%</span>
+                             </div>
+                          </div>
+                        </td>
+                        <td style="text-align:center; vertical-align:middle;">
+                          <div id = "Moutinho">
+                            
+                          </div>
+                        </td>
+                    </tr> -->
+                </tbody>
+              </table>
+            </div>
+            <div class="col-md-12" id="wrapper">
+              <br/><p> Popular Accounts Tweets : </p>
+              <div class="scrollbar" id="style-1">
+                <div class="force-overflow" id="veri">
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6"><p></p></div>
+            <div class="col-md-6"><p></p></div>
+            <div class="col-md-6"><p></p></div>
+            <div class="col-md-6"><p></p></div>
+            <div class="col-md-6"><p></p></div>
+            <div class="col-md-6"><p></p></div>
+        </div>
+    </div>
+
+<!-- //////////////////////////////////////////////////Main Body////////////////////////////////////////////// -->
+
+        <!-- //////////////////////////////////////////////////Right Click start////////////////////////////////////////////// -->
+<div id="contextMenu" class="dropdown clearfix">
+    <ul class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu" style="display:block;position:static;margin-bottom:5px;">
+      <li><a tabindex="-1" href="#">Duplicate Plan</a></li>
+      <li><a tabindex="-1" href="#">Rename Plan</a></li>
+      <li><a tabindex="-1" href="#">Delete Plan</a></li>
+      <li><a tabindex="-1" href="#">Plan Details</a></li>
+<!--      <li><a tabindex="-1" href="#">Something else here</a></li>
+      <li class="divider"></li>
+      <li><a tabindex="-1" href="#">Separated link</a></li> -->
+    </ul>
+  </div>
+        <!-- //////////////////////////////////////////////////Right Click  END////////////////////////////////////////////// -->
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="/static/js/bootstrap.min.js"></script>
+  </body>
+</html>

@@ -1,0 +1,8 @@
+#toggleSidebar {
+    position:fixed;
+    left:0;
+    top:45px;
+    display:block;
+    color:#779DD7;
+    padding:2px 4px;
+}
